@@ -1,0 +1,70 @@
+name: ACEest CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  # ── JOB 1: Lint & Syntax Check ─────────────────────────────────────────────
+  lint:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask pytest pyflakes
+
+      - name: Run syntax check (Lint)
+        run: |
+          python -m pyflakes app.py
+
+  # ── JOB 2: Build Docker Image ──────────────────────────────────────────────
+  docker-build:
+    name: Docker Image Assembly
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t aceest-app .
+
+  # ── JOB 3: Run Tests inside Docker ────────────────────────────────────────
+  test:
+    name: Automated Testing
+    runs-on: ubuntu-latest
+    needs: docker-build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask pytest
+
+      - name: Run Pytest suite
+        run: |
+          python -m pytest test_app.py -v
