@@ -2,103 +2,149 @@
 
 ## Project Overview
 
-This project demonstrates a complete DevOps pipeline for ACEest Fitness & Gym application using Flask, Docker, GitHub Actions, and Jenkins.
+This repository contains the ACEest Fitness & Gym Flask application and the DevOps pipeline required for the assignment. The project demonstrates version control with Git and GitHub, automated testing with Pytest, containerization with Docker, CI/CD with GitHub Actions, and build validation with Jenkins.
 
-## Technologies Used
+## Repository Contents
 
-* Python (Flask)
-* Git & GitHub
-* Docker
-* GitHub Actions
-* Jenkins
+- `app.py`: Flask REST API for ACEest Fitness & Gym
+- `requirements.txt`: Python dependencies
+- `test_app.py`: Pytest test suite for the Flask endpoints
+- `Dockerfile`: Container definition for the application
+- `.github/workflows/main.yml`: GitHub Actions workflow
+- `versions/`: Assignment-provided application source versions kept for version-history evidence
 
 ## Application Features
 
-* REST API built using Flask
-* Multiple endpoints for gym management
-* Unit tested using Pytest
+- Home endpoint to verify service health
+- Program listing and program detail endpoints
+- Calorie calculation endpoint
+- Client creation and retrieval endpoints
+- JSON API responses suitable for testing and containerized execution
 
-## Local Setup Instructions
+## Local Setup and Execution
 
-### 1. Clone the Repository
+### 1. Clone the repository
 
+```powershell
 git clone https://github.com/Suresh-kumar-barawar/aceest-devops.git
-
-### 2. Navigate to Project Folder
-
 cd aceest-devops
+```
 
-### 3. Create Virtual Environment
+### 2. Create and activate a virtual environment
 
+```powershell
 python -m venv venv
-
-### 4. Activate Virtual Environment
-
 venv\Scripts\activate
+```
 
-### 5. Install Dependencies
+### 3. Install dependencies
 
+```powershell
 pip install -r requirements.txt
+```
 
-### 6. Run Application
+### 4. Run the Flask application
 
+```powershell
 python app.py
+```
 
-Application will run on:
+The application starts on:
+
+```text
 http://127.0.0.1:5000
+```
 
----
+## Manual Test Execution
 
-## Running Tests
+Run the complete Pytest suite locally:
 
-Run the following command:
-pytest
+```powershell
+python -m pytest -v
+```
 
-All tests should pass successfully.
+All tests should pass successfully before pushing changes or running container builds.
 
----
+## Docker Usage
 
-## Docker Setup
+### Build the Docker image
 
-### Build Docker Image
-
+```powershell
 docker build -t aceest-app .
+```
 
-### Run Docker Container
+### Run the application container
 
-docker run -p 5000:5000 aceest-app
+```powershell
+docker run --rm -p 5000:5000 aceest-app
+```
 
----
+### Run tests inside the Docker container
 
-## CI/CD Pipeline (GitHub Actions)
+```powershell
+docker run --rm aceest-app python -m pytest test_app.py -v
+```
 
-This project uses GitHub Actions to automate the CI/CD pipeline.
+## GitHub Actions CI/CD Workflow
 
-### Pipeline Stages:
+The workflow file is located at `.github/workflows/main.yml`.
 
-1. Lint Check
-2. Docker Image Build
-3. Run Pytest
+### Trigger conditions
 
-The pipeline is triggered on every push and pull request.
+- Push to `main`
+- Pull request targeting `main`
 
----
+### Pipeline stages
+
+1. `Build & Lint`
+   - Checks out the code
+   - Sets up Python
+   - Installs Flask, Pytest, and Pyflakes
+   - Runs syntax and lint validation on `app.py`
+
+2. `Docker Image Assembly`
+   - Builds the Docker image for the application
+
+3. `Automated Testing`
+   - Builds the Docker image again for the test job
+   - Runs the Pytest suite inside the Docker container
+
+This pipeline ensures that code is validated, containerized, and tested automatically for repository changes.
 
 ## Jenkins Integration
 
-Jenkins is used as a build server to validate the project.
+Jenkins is used as the secondary build validation environment for the assignment.
 
-### Jenkins Workflow:
+### Jenkins job purpose
 
-1. Pull latest code from GitHub
-2. Install dependencies
-3. Run Pytest
-4. Verify build success
+The Jenkins job pulls the latest repository code and verifies that the project builds and tests successfully in a clean environment.
 
-This ensures code quality before deployment.
+### Jenkins build logic
 
----
+The Jenkins job is configured to:
+
+```bat
+pip install -r requirements.txt
+pytest
+```
+
+### Jenkins validation flow
+
+1. Jenkins pulls the project from GitHub
+2. Dependencies are installed from `requirements.txt`
+3. The Pytest suite is executed
+4. Build success confirms the code is valid in the Jenkins environment
+
+Together, GitHub Actions and Jenkins provide two layers of automated validation:
+
+- GitHub Actions validates pull requests and pushes through CI/CD stages
+- Jenkins validates that the repository can still be built and tested from an external build server
+
+## Assignment Notes
+
+- The `versions/` folder stores the assignment-provided application versions that were committed one by one to demonstrate Git version progression.
+- The final deliverable application used for testing, Docker, GitHub Actions, and Jenkins is the Flask-based implementation in `app.py`.
 
 ## Conclusion
 
-This project demonstrates a complete DevOps lifecycle including development, testing, containerization, and CI/CD automation using modern tools.
+This project demonstrates the complete DevOps workflow requested in the assignment: application development, Git-based version tracking, automated testing, Docker containerization, GitHub Actions CI/CD automation, and Jenkins build validation.
