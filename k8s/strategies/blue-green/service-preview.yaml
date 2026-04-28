@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-blue-green-preview
+  namespace: aceest-devops
+spec:
+  selector:
+    app: aceest-app
+    color: green
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+      nodePort: 30082
+  type: NodePort

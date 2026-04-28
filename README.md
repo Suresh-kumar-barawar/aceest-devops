@@ -1,150 +1,120 @@
-# ACEest DevOps Project
+# ACEest Fitness & Gym DevOps Pipeline
 
-## Project Overview
+ACEest is a Flask API packaged for a university DevOps assignment. The repository now includes:
 
-This repository contains the ACEest Fitness & Gym Flask application and the DevOps pipeline required for the assignment. The project demonstrates version control with Git and GitHub, automated testing with Pytest, containerization with Docker, CI/CD with GitHub Actions, and build validation with Jenkins.
+- a modular Flask application
+- Pytest tests with coverage
+- a Jenkins pipeline in `Jenkinsfile`
+- SonarQube project configuration
+- a production-oriented Dockerfile
+- Kubernetes manifests for rolling, blue-green, canary, A/B, and shadow deployment strategies
 
-## Repository Contents
+## Project structure
 
-- `app.py`: Flask REST API for ACEest Fitness & Gym
-- `requirements.txt`: Python dependencies
-- `test_app.py`: Pytest test suite for the Flask endpoints
-- `Dockerfile`: Container definition for the application
-- `.github/workflows/main.yml`: GitHub Actions workflow
-- `versions/`: Assignment-provided application source versions kept for version-history evidence
+- `app.py`: runtime entry point
+- `aceest/`: Flask package and routes
+- `tests/`: Pytest test suite
+- `Dockerfile`: production image build
+- `Jenkinsfile`: CI/CD pipeline definition
+- `sonar-project.properties`: SonarQube scanner settings
+- `k8s/`: Kubernetes base manifests and deployment strategies
+- `scripts/`: helper automation scripts for Kubernetes deployment
+- `versions/`: assignment source history
 
-## Application Features
-
-- Home endpoint to verify service health
-- Program listing and program detail endpoints
-- Calorie calculation endpoint
-- Client creation and retrieval endpoints
-- JSON API responses suitable for testing and containerized execution
-
-## Local Setup and Execution
-
-### 1. Clone the repository
+## Local setup
 
 ```powershell
-git clone https://github.com/Suresh-kumar-barawar/aceest-devops.git
-cd aceest-devops
-```
-
-### 2. Create and activate a virtual environment
-
-```powershell
-python -m venv venv
-venv\Scripts\activate
-```
-
-### 3. Install dependencies
-
-```powershell
-pip install -r requirements.txt
-```
-
-### 4. Run the Flask application
-
-```powershell
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install -r requirements.txt
 python app.py
 ```
 
-The application starts on:
+Default URL:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-## Manual Test Execution
+Useful endpoints:
 
-Run the complete Pytest suite locally:
+- `/`
+- `/healthz`
+- `/version`
+- `/programs`
+- `/clients`
+
+## Testing
+
+Run tests:
 
 ```powershell
 python -m pytest -v
 ```
 
-All tests should pass successfully before pushing changes or running container builds.
-
-## Docker Usage
-
-### Build the Docker image
+Run tests with coverage:
 
 ```powershell
-docker build -t aceest-app .
+python -m pytest --cov=aceest --cov-report=term-missing --cov-report=xml:coverage.xml -v
 ```
 
-### Run the application container
+## Jenkins pipeline
+
+The Jenkins pipeline supports these stages:
+
+1. Checkout
+2. Install dependencies
+3. Run tests and generate coverage + JUnit reports
+4. Optional SonarQube analysis
+5. Optional Docker image build and push
+6. Optional Kubernetes deployment
+
+Recommended Jenkins prerequisites:
+
+- Python available at the path used in `Jenkinsfile`
+- SonarQube server configured in Jenkins as `SonarQubeServer`
+- SonarScanner tool configured in Jenkins as `SonarScanner`
+- Docker Hub credentials stored as `dockerhub-creds`
+- `kubectl` configured to access Minikube or your target cluster
+
+## Docker
+
+Build the image:
 
 ```powershell
-docker run --rm -p 5000:5000 aceest-app
+docker build -t aceest-fitness-gym:latest .
 ```
 
-### Run tests inside the Docker container
+Run the container:
 
 ```powershell
-docker run --rm aceest-app python -m pytest test_app.py -v
+docker run --rm -p 5000:5000 -e APP_VERSION=v1.0.0 aceest-fitness-gym:latest
 ```
 
-## GitHub Actions CI/CD Workflow
+## Kubernetes
 
-The workflow file is located at `.github/workflows/main.yml`.
+Apply the rolling deployment:
 
-### Trigger conditions
-
-- Push to `main`
-- Pull request targeting `main`
-
-### Pipeline stages
-
-1. `Build & Lint`
-   - Checks out the code
-   - Sets up Python
-   - Installs Flask, Pytest, and Pyflakes
-   - Runs syntax and lint validation on `app.py`
-
-2. `Docker Image Assembly`
-   - Builds the Docker image for the application
-
-3. `Automated Testing`
-   - Builds the Docker image again for the test job
-   - Runs the Pytest suite inside the Docker container
-
-This pipeline ensures that code is validated, containerized, and tested automatically for repository changes.
-
-## Jenkins Integration
-
-Jenkins is used as the secondary build validation environment for the assignment.
-
-### Jenkins job purpose
-
-The Jenkins job pulls the latest repository code and verifies that the project builds and tests successfully in a clean environment.
-
-### Jenkins build logic
-
-The Jenkins job is configured to:
-
-```bat
-pip install -r requirements.txt
-pytest
+```powershell
+kubectl apply -f k8s/base
+kubectl apply -f k8s/strategies/rolling
 ```
 
-### Jenkins validation flow
+Apply a different strategy:
 
-1. Jenkins pulls the project from GitHub
-2. Dependencies are installed from `requirements.txt`
-3. The Pytest suite is executed
-4. Build success confirms the code is valid in the Jenkins environment
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy-k8s.ps1 -Strategy canary -Image docker.io/<dockerhub-user>/aceest-fitness-gym:v1.0.0
+```
 
-Together, GitHub Actions and Jenkins provide two layers of automated validation:
+Expose the application in Minikube:
 
-- GitHub Actions validates pull requests and pushes through CI/CD stages
-- Jenkins validates that the repository can still be built and tested from an external build server
+```powershell
+minikube service aceest-service -n aceest-devops --url
+```
 
-## Assignment Notes
+## Report starter points
 
-- The `versions/` folder stores the assignment-provided application versions that were committed one by one to demonstrate Git version progression.
-- The final deliverable application used for testing, Docker, GitHub Actions, and Jenkins is the Flask-based implementation in `app.py`.
-
-## Conclusion
-
-This project demonstrates the complete DevOps workflow requested in the assignment: application development, Git-based version tracking, automated testing, Docker containerization, GitHub Actions CI/CD automation, and Jenkins build validation.
+- CI validates every commit with Jenkins and Pytest coverage.
+- SonarQube adds static analysis and quality gate enforcement.
+- Docker provides consistent packaging across environments.
+- Kubernetes manifests demonstrate multiple release strategies with rollback-friendly patterns.

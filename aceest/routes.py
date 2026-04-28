@@ -1,3 +1,5 @@
+import os
+
 from flask import jsonify, request
 
 clients = {}
@@ -25,6 +27,14 @@ def register_routes(app):
     def home():
         return jsonify({"message": "Welcome to ACEest Fitness & Gym API", "status": "running"})
 
+    @app.route("/healthz", methods=["GET"])
+    def healthcheck():
+        return jsonify({"status": "healthy"}), 200
+
+    @app.route("/version", methods=["GET"])
+    def version():
+        return jsonify({"version": os.getenv("APP_VERSION", "v1.0.0")}), 200
+
     @app.route("/programs", methods=["GET"])
     def get_programs():
         return jsonify({"programs": list(PROGRAMS.keys())})
@@ -37,7 +47,7 @@ def register_routes(app):
 
     @app.route("/calories", methods=["POST"])
     def calculate_calories():
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         weight = data.get("weight")
         program = data.get("program")
 
@@ -53,7 +63,7 @@ def register_routes(app):
 
     @app.route("/clients", methods=["POST"])
     def add_client():
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         name = data.get("name")
 
         if not name:

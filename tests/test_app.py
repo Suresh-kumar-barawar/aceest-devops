@@ -1,8 +1,10 @@
 import pytest
 from aceest import create_app
+from aceest import routes
 
 @pytest.fixture
 def client():
+    routes.clients.clear()
     app = create_app()
     app.config["TESTING"] = True
     with app.test_client() as client:
@@ -16,6 +18,16 @@ def test_home(client):
     data = response.get_json()
     assert data["status"] == "running"
     assert "message" in data
+
+def test_healthcheck(client):
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "healthy"
+
+def test_version(client):
+    response = client.get("/version")
+    assert response.status_code == 200
+    assert "version" in response.get_json()
 
 # ── PROGRAMS ──────────────────────────────────────────────────────────────────
 

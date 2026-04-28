@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-variant-a
+  namespace: aceest-devops
+spec:
+  selector:
+    app: aceest-app
+    variant: a
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: ClusterIP
