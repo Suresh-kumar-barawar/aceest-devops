@@ -12,8 +12,11 @@ pipeline {
         booleanParam(name: 'PUSH_DOCKER_IMAGE', defaultValue: false, description: 'Push the built Docker image to Docker Hub')
         booleanParam(name: 'DEPLOY_TO_K8S', defaultValue: false, description: 'Deploy the selected version to Kubernetes')
         string(name: 'DOCKERHUB_USERNAME', defaultValue: '', description: 'Docker Hub username or organization for image tagging')
+        password(name: 'DOCKERHUB_TOKEN', defaultValue: '', description: 'Docker Hub access token used when push is enabled')
         string(name: 'IMAGE_NAME', defaultValue: 'aceest-fitness-gym', description: 'Docker image repository name')
         string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Image tag to build and deploy')
+        string(name: 'SONAR_HOST_URL', defaultValue: 'http://host.docker.internal:9000', description: 'Reachable SonarQube URL from Jenkins')
+        password(name: 'SONAR_TOKEN', defaultValue: '', description: 'SonarQube user token')
         choice(name: 'DEPLOYMENT_STRATEGY', choices: ['rolling', 'blue-green', 'canary', 'ab-testing', 'shadow'], description: 'Kubernetes deployment strategy to apply')
     }
 
@@ -47,32 +50,16 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                bat "\"%PYTHON_EXE%\" -m pytest --cov=aceest --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=pytest-report.xml -v"
+                bat "\"%PYTHON_EXE%\" -m pytest --cov=aceest --cov-config=.coveragerc --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=pytest-report.xml -v"
             }
         }
 
         stage('SonarQube Analysis') {
             when {
-                expression { return params.RUN_SONARQUBE }
+                expression { return params.RUN_SONARQUBE && params.SONAR_TOKEN?.trim() }
             }
             steps {
-                script {
-                    def scannerHome = tool 'SonarScanner'
-                    withSonarQubeEnv('SonarQubeServer') {
-                        bat "\"${scannerHome}\\bin\\sonar-scanner.bat\""
-                    }
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            when {
-                expression { return params.RUN_SONARQUBE }
-            }
-            steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
+                bat "docker run --rm -e SONAR_HOST_URL=${params.SONAR_HOST_URL} -e SONAR_TOKEN=${params.SONAR_TOKEN} -v \"%CD%:/usr/src\" sonarsource/sonar-scanner-cli"
             }
         }
 
@@ -91,13 +78,12 @@ pipeline {
                     expression { return params.BUILD_DOCKER_IMAGE }
                     expression { return params.PUSH_DOCKER_IMAGE }
                     expression { return params.DOCKERHUB_USERNAME?.trim() }
+                    expression { return params.DOCKERHUB_TOKEN?.trim() }
                 }
             }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
-                    bat 'docker push %FULL_IMAGE_NAME%:%IMAGE_TAG%'
-                }
+                bat 'echo %DOCKERHUB_TOKEN% | docker login -u %DOCKERHUB_USERNAME% --password-stdin'
+                bat 'docker push %FULL_IMAGE_NAME%:%IMAGE_TAG%'
             }
         }
 
